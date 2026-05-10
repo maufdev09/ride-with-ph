@@ -16,3 +16,5 @@ build
 commit-message.txt
 
 
+
+/src/generated/prisma
