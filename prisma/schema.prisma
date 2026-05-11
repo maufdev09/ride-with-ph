@@ -12,18 +12,106 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id            Int            @id @default(autoincrement())
+  name          String?
+  email         String         @unique
+  role          UserRole       @default(RIDER)
+  createdAt     DateTime       @default(now())
+  isBlocked     Boolean        @default(false) @map("is_blocked")
+  updatedAt     DateTime       @updatedAt
+  password      String?
+  AdminProfile  AdminProfile?
+  DriverProfile DriverProfile?
+  RiderProfile  RiderProfile?
 
-model User { 
-  id    Int     @id @default(autoincrement()) 
-  email String  @unique
-  name  String?
-  posts Post[]
-} 
-model Post { 
-  id        Int     @id @default(autoincrement()) 
-  title     String
-  content   String?
-  published Boolean @default(false) 
-  author    User    @relation(fields: [authorId], references: [id]) 
-  authorId  Int
-} 
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  DRIVER
+  RIDER
+}
+
+model AdminProfile {
+  id     Int @id @default(autoincrement())
+  userId Int @unique @map("user_id")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("admin_profiles")
+}
+
+model DriverProfile {
+  id              Int     @id @default(autoincrement())
+  userId          Int     @unique @map("user_id")
+  user            User    @relation(fields: [userId], references: [id])
+  rating          Float?  @default(0.0)
+  totalRides      Int     @default(0) @map("total_rides")
+  licenseNumber   String? @map("license_number")
+  currentProfile  String? @map("current_profile_picture")
+  experienceYears Int?    @map("experience_years")
+  isOnline        Boolean @default(false) @map("is_online")
+  totalEarnings   Float   @default(0.0) @map("total_earnings")
+
+  rides Ride[]
+
+  @@map("driver_profiles")
+}
+
+model RiderProfile {
+  id             Int     @id @default(autoincrement())
+  userId         Int     @unique @map("user_id")
+  user           User    @relation(fields: [userId], references: [id])
+  currentProfile String? @map("current_profile_picture")
+  totalRides     Int     @default(0) @map("total_rides")
+  totalSpent     Float   @default(0.0) @map("total_spent")
+  rating         Float?  @default(0.0)
+
+  ridingHistory RidingHistory[]
+
+  rides Ride[]
+
+  @@map("rider_profiles")
+}
+
+model Ride {
+  id          Int        @id @default(autoincrement())
+  driverId    Int?       @map("driver_id")
+  riderId     Int        @map("rider_id")
+  pickup      String
+  origin      String
+  destination String
+  fare        Float
+  status      RideStatus @default(PENDING)
+  requestedAt DateTime   @default(now()) @map("requested_at")
+  completedAt DateTime?  @map("completed_at")
+
+  driver DriverProfile? @relation(fields: [driverId], references: [id])
+  rider  RiderProfile   @relation(fields: [riderId], references: [id])
+
+  ridingHistory RidingHistory[]
+
+  @@map("rides")
+}
+
+enum RideStatus {
+  PENDING
+  ACCEPTED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model RidingHistory {
+  id        Int      @id @default(autoincrement())
+  riderId   Int      @map("rider_id")
+  rideId    Int      @map("ride_id")
+  timestamp DateTime @default(now())
+
+  rider RiderProfile @relation(fields: [riderId], references: [id])
+  ride  Ride         @relation(fields: [rideId], references: [id])
+
+  @@map("riding_history")
+}
